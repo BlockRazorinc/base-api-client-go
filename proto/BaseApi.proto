@@ -1,0 +1,63 @@
+
+syntax = "proto3";
+
+option go_package = "./basepb";
+
+
+import "google/protobuf/wrappers.proto";
+
+message BaseBlock {
+  string parent_hash = 1;
+  string fee_recipient = 2;
+  bytes state_root = 3;
+  bytes receipts_root = 4;
+  bytes logs_bloom = 5;
+  bytes prev_randao = 6;
+  uint64 block_number = 7;
+  uint64 gas_limit = 8;
+  uint64 gas_used = 9;
+  uint64 timestamp = 10;
+  bytes extra_data = 11;
+  repeated uint64 base_fee_per_gas = 12;
+  string block_hash = 13;
+  repeated bytes transactions = 14;
+
+  repeated Withdrawal withdrawals = 15;
+  google.protobuf.UInt64Value blob_gas_used = 16;
+  google.protobuf.UInt64Value excess_blob_gas = 17;
+  google.protobuf.BytesValue withdrawals_root = 18;
+}
+
+message Withdrawal {
+  uint64 index = 1;
+  uint64 validator = 2;
+  bytes address = 3;
+  uint64 amount = 4;
+}
+
+message GetRawFlashBlocksStreamRequest {
+}
+
+message GetBlockStreamRequest {
+}
+
+message SendTransactionRequest {
+  string rawTransaction = 1;
+}
+
+message SendTransactionResponse {
+  string txHash = 1;
+}
+
+message FlashBlockStrRequest {
+}
+
+message RawFlashBlockStrResponse {
+  bytes message = 1;
+}
+
+service BaseApi {
+  rpc SendTransaction(SendTransactionRequest) returns (SendTransactionResponse);
+  rpc GetBlockStream(GetBlockStreamRequest) returns (stream BaseBlock);
+  rpc GetRawFlashBlockStream(GetRawFlashBlocksStreamRequest) returns (stream RawFlashBlockStrResponse);
+}

@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"io"
 	"log"
@@ -15,16 +14,16 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/gorilla/websocket"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 )
 
 const (
 	// Replace with the server address geographically closest to you for optimal performance.
-	grpcAddr      = "tokyo.grpc.base.blockrazor.xyz:443"
-	websocketAddr = "wss://tokyo.base.blockrazor.xyz/ws"
-	//websocketAddr          = "wss://frankfurt.base.blockrazor.xyz/ws"
-	//websocketAddr          = "wss://virginia.base.blockrazor.xyz/ws"
+	grpcAddr      = "tokyo.grpc.base.blockrazor.xyz:80"
+	websocketAddr = "ws://tokyo.base.blockrazor.xyz:81/ws"
+	//websocketAddr          = "ws://frankfurt.base.blockrazor.xyz:81/ws"
+	//websocketAddr          = "ws://virginia.base.blockrazor.xyz:81/ws"
 	authToken = "your token goes here" // Replace with your authentication token.
 )
 
@@ -32,8 +31,8 @@ func main() {
 	// main is the entry point of the program.
 	// It directly calls one of the stream functions to demonstrate its usage.
 	// The program will exit once the called function completes.
-	GetFlashBlockStream(authToken)
-	// GetBlockStream(authToken)
+	// GetFlashBlockStream(authToken)
+	GetBlockStream(authToken)
 	// GetWebSocketFlashBlockStream(authToken)
 	// sendTransactions(client, authToken, "0x + ....") // It's recommended to keep the gRPC client alive for sending transactions.
 }
@@ -47,7 +46,7 @@ func GetBlockStream(authToken string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	conn, err := grpc.DialContext(ctx, grpcAddr,
-		grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})))
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Printf("[BlockStream] Failed to connect to gRPC server: %v", err)
 		return
@@ -98,8 +97,7 @@ func GetFlashBlockStream(authToken string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	conn, err := grpc.DialContext(ctx, grpcAddr,
-		grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})),
-	)
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Printf("[FlashStream] Failed to connect to gRPC server: %v", err)
 		return

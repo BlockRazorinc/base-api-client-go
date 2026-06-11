@@ -32,9 +32,57 @@ func main() {
 	// It directly calls one of the stream functions to demonstrate its usage.
 	// The program will exit once the called function completes.
 	// GetFlashBlockStream(authToken)
+	// GetFlashTransactionStream(authToken)
 	GetBlockStream(authToken)
 	// GetWebSocketFlashBlockStream(authToken)
 	// sendTransactions(client, authToken, "0x + ....") // It's recommended to keep the gRPC client alive for sending transactions.
+}
+
+func GetFlashTransactionStream(authToken string) {
+	log.Printf("[FlashTransactionStream] Attempting to connect to gRPC server at %s...", grpcAddr)
+
+	// Establish a connection to the gRPC server with a timeout.
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	conn, err := grpc.DialContext(ctx, grpcAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Printf("[FlashTransactionStream] Failed to connect to gRPC server: %v", err)
+		return
+	}
+	defer conn.Close()
+
+	log.Println("[FlashTransactionStream] Successfully connected to gRPC server.")
+	client := basepb.NewBaseApiClient(conn)
+
+	// Create a new context with authentication metadata for the stream subscription.
+	streamCtx := metadata.NewOutgoingContext(context.Background(), metadata.Pairs("authorization", authToken))
+	stream, err := client.GetNewFlashblockTransactionsStream(streamCtx, &basepb.GetNewFlashblockTransactionsStreamRequest{})
+	if err != nil {
+		log.Printf("[FlashTransactionStream] Failed to subscribe to stream: %v", err)
+		return
+	}
+
+	log.Println("[FlashTransactionStream] Subscription successful. Waiting for new txs...")
+
+	// Loop indefinitely to receive messages from the stream.
+	for {
+		tx, err := stream.Recv()
+		if err != nil {
+			if err == io.EOF {
+				log.Println("[FlashTransactionStream] Stream closed by the server (EOF).")
+			} else {
+				log.Printf("[FlashTransactionStream] An error occurred while receiving data: %v", err)
+			}
+			break
+		}
+
+		log.Printf("=> [FlashTransactionStream] Received new tx: BlockNumber=%s, txHash=%s, TransactionIndex=%s",
+			tx.GetBlockNumber(),
+			tx.GetHash(),
+			tx.GetTransactionIndex(),
+		)
+	}
 }
 
 // GetBlockStream provides a simplified example of subscribing to and processing the regular block stream.

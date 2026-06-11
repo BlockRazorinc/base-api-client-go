@@ -56,8 +56,61 @@ message RawFlashBlockStrResponse {
   bytes message = 1;
 }
 
+message GetNewFlashblockTransactionsStreamRequest {
+}
+
+message NewFlashblockTransactionAccessListEntry {
+  string address = 1;
+  repeated string storage_keys = 2;
+}
+
+message NewFlashblockTransactionLog {
+  string address = 1;
+  repeated string topics = 2;
+  string data = 3;
+  string block_hash = 4;
+  string block_number = 5;
+  string block_timestamp = 6;
+  string transaction_hash = 7;
+  string transaction_index = 8;
+  string log_index = 9;
+  bool removed = 10;
+}
+
+message NewFlashblockTransaction {
+  string type = 1;
+  string chain_id = 2;
+  string nonce = 3;
+  string gas = 4;
+  string max_fee_per_gas = 5;
+  string max_priority_fee_per_gas = 6;
+  google.protobuf.StringValue to = 7;
+  string value = 8;
+  repeated NewFlashblockTransactionAccessListEntry access_list = 9;
+  string input = 10;
+  string r = 11;
+  string s = 12;
+  string y_parity = 13;
+  string v = 14;
+  string hash = 15;
+  google.protobuf.StringValue block_hash = 16;
+  string block_number = 17;
+  string transaction_index = 18;
+  string block_timestamp = 19;
+  string from = 20;
+  string gas_price = 21;
+  repeated NewFlashblockTransactionLog logs = 22;
+  string gas_used = 23;
+  string status = 24;
+  string cumulative_gas_used = 25;
+  google.protobuf.StringValue contract_address = 26;
+  string logs_bloom = 27;
+}
+
+
 service BaseApi {
   rpc SendTransaction(SendTransactionRequest) returns (SendTransactionResponse);
   rpc GetBlockStream(GetBlockStreamRequest) returns (stream BaseBlock);
   rpc GetRawFlashBlockStream(GetRawFlashBlocksStreamRequest) returns (stream RawFlashBlockStrResponse);
+  rpc GetNewFlashblockTransactionsStream(GetNewFlashblockTransactionsStreamRequest) returns (stream NewFlashblockTransaction);
 }

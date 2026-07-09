@@ -1,3 +1,5 @@
 base-api-client-go
 .DS_Store
-.idea/
+.idea
+.gocache
+.gopath

@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 const (
@@ -35,6 +36,7 @@ func main() {
 	// GetFlashTransactionStream(authToken)
 	GetBlockStream(authToken)
 	// GetWebSocketFlashBlockStream(authToken)
+	// GetWebSocketFlashTransactionStream(authToken)
 	// sendTransactions(client, authToken, "0x + ....") // It's recommended to keep the gRPC client alive for sending transactions.
 }
 
@@ -335,4 +337,68 @@ func printPretty(v interface{}) {
 		return
 	}
 	log.Println(string(out))
+}
+
+type FlashTransactionWebSocketResponse struct {
+	JsonRPC string                           `json:"jsonrpc"`
+	Result  *basepb.NewFlashblockTransaction `json:"result"`
+}
+
+func GetWebSocketFlashTransactionStream(authToken string) {
+	header := http.Header{}
+	header.Set("Authorization", authToken)
+
+	// Dial the WebSocket server.
+	dialer := websocket.DefaultDialer
+	conn, resp, err := dialer.Dial(websocketAddr, header)
+	if err != nil {
+		if resp != nil {
+			log.Fatalf("[WebSocket] Dial failed: %v (HTTP status: %s)", err, resp.Status)
+		}
+		log.Fatalf("[WebSocket] Dial failed: %v", err)
+	}
+	defer conn.Close()
+	log.Printf("[WebSocket] Successfully connected to %s", websocketAddr)
+
+	// Prepare the JSON-RPC subscription request.
+	req := map[string]interface{}{
+		"jsonrpc": "2.0",
+		"method":  "subscribe_FlashTransaction",
+		"params":  []interface{}{},
+		"id":      1,
+	}
+	reqB, _ := json.Marshal(req)
+	if err := conn.WriteMessage(websocket.TextMessage, reqB); err != nil {
+		log.Fatalf("[WebSocket] Failed to send subscription request: %v", err)
+	}
+	log.Printf("[WebSocket] Subscription request sent: %s", string(reqB))
+
+	for {
+		_, msg, err := conn.ReadMessage()
+		if err != nil {
+			log.Printf("[WebSocket] read error: %v", err)
+			return
+		}
+
+		var outer FlashTransactionWebSocketResponse
+		if err := json.Unmarshal(msg, &outer); err != nil {
+			log.Printf("[WebSocket] unmarshal outer message failed: %v, raw=%s", err, string(msg))
+			continue
+		}
+
+		if outer.Result == nil {
+			log.Printf("[WebSocket] Received message without a valid result field. Raw data: %s", string(msg))
+			continue
+		}
+
+		tx := outer.Result
+
+		b, err := protojson.Marshal(tx)
+		if err != nil {
+			continue
+		}
+
+		jsonString := string(b)
+		printPretty(jsonString)
+	}
 }
